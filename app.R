@@ -4,6 +4,11 @@ library(shinydashboard)
 library(shinyBS)
 library(shinyWidgets)
 library(boastUtils)
+library(seewave)
+library(tuneR)
+library(ggplot2)
+
+
 
 # Load additional dependencies and setup functions
 # source("global.R")
@@ -12,15 +17,15 @@ library(boastUtils)
 ui <- list(
   ## Create the app page ----
   dashboardPage(
-    skin = "blue",
+    skin = "green",
     ### Create the app header ----
     dashboardHeader(
-      title = "App Template", # You may use a shortened form of the title here
+      title = "Classification using Neural Networks", # You may use a shortened form of the title here
       titleWidth = 250,
       tags$li(class = "dropdown", actionLink("info", icon("info"))),
       tags$li(
         class = "dropdown",
-        boastUtils::surveyLink(name = "App_Template")
+        boastUtils::surveyLink(name = "Classification_Using_Neural_Networks")
       ),
       tags$li(
         class = "dropdown",
@@ -36,11 +41,7 @@ ui <- list(
         id = "pages",
         menuItem("Overview", tabName = "overview", icon = icon("gauge-high")),
         menuItem("Prerequisites", tabName = "prerequisites", icon = icon("book")),
-        menuItem("Example", tabName = "example", icon = icon("book-open-reader")),
         menuItem("Explore", tabName = "explore", icon = icon("wpexplorer")),
-        menuItem("Challenge", tabName = "challenge", icon = icon("gears")),
-        menuItem("Game", tabName = "game", icon = icon("gamepad")),
-        menuItem("Wizard", tabName = "wizard", icon = icon("hat-wizard")),
         menuItem("References", tabName = "references", icon = icon("leanpub"))
       ),
       tags$div(
@@ -55,27 +56,30 @@ ui <- list(
         tabItem(
           tabName = "overview",
           withMathJax(),
-          h1("Sample Application for BOAST Apps"), # This should be the full name.
-          p("This is a sample Shiny application for BOAST. Remember, this page
-            will act like the front page (home page) of your app. Thus you will
-            want to have this page catch attention and describe (in general terms)
-            what the user can do in the rest of the app."),
+          h1("Neural Network Intro"), 
+          p("This application will help show you the structure of a neural network,
+            the various nodes involved and different activation functions for 
+            different situations. In the app there is an example dealing with a 
+            hospital, showcasing binary and multinomial classification. Look to 
+            the instructions to learn more."),
           h2("Instructions"),
-          p("This information will change depending on what you want to do."),
+          p("Review the instructions below."),
           tags$ol(
-            tags$li("Review any prerequiste ideas using the Prerequistes tab."),
-            tags$li("Explore the Exploration Tab."),
-            tags$li("Challenge yourself."),
-            tags$li("Play the game to test how far you've come.")
+            tags$li("Review the prerequiste iformation and ideas using the
+                    Prerequistes tab."),
+            tags$li("Explore the dataset Exploration Tab."),
+            tags$li("Head to the *tab* to see two neural networks in action!
+                    Dealing with examples of binary and multinomial
+                    classification in a hospital.")
           ),
           ##### Go Button--location will depend on your goals
           div(
             style = "text-align: center;",
             bsButton(
               inputId = "go1",
-              label = "GO!",
+              label = "Prerequisites",
               size = "large",
-              icon = icon("bolt"),
+              icon = icon("book"),
               style = "default"
             )
           ),
@@ -84,11 +88,8 @@ ui <- list(
           br(),
           h2("Acknowledgements"),
           p(
-            "This version of the app was developed and coded by Neil J.
-            Hatfield  and Robert P. Carey, III.",
+            "This version of the app was developed and coded by Robert Chappell",
             br(),
-            "We would like to extend a special thanks to the Shiny Program
-            Students.",
             br(),
             br(),
             "Cite this app as:",
@@ -96,7 +97,7 @@ ui <- list(
             citeApp(),
             br(),
             br(),
-            div(class = "updated", "Last Update: 11/8/2022 by NJH.")
+            div(class = "updated", "Last Update: 07/07/2022 by RWC.")
           )
         ),
         #### Set up the Prerequisites Page ----
@@ -107,109 +108,115 @@ ui <- list(
           p("In order to get the most out of this app, please review the
             following:"),
           tags$ul(
-            tags$li("Pre-req 1--Technical/Conceptual Prerequisites are ideas that
+            tags$li("Binary Classification--Technical/Conceptual Prerequisites are ideas that
                     users need to have in order to engage with your app fully."),
-            tags$li("Pre-req 2--Contextual Prerequisites refer to any information
+            tags$li("Multinomial Classification--Contextual Prerequisites refer to any information
                     about a context in your app that will enrich a user's
-                    understandings."),
-            tags$li("Pre-req 3"),
-            tags$li("Pre-req 4")
-          ),
-          p("Notice the use of an unordered list; users can move through the
-            list any way they wish."),
-          box(
-            title = strong("Null Hypothesis Significance Tests (NHSTs)"),
-            status = "primary",
-            collapsible = TRUE,
-            collapsed = TRUE,
-            width = '100%',
-            "In the Confirmatory Data Analysis tradition, null hypothesis
-            significance tests serve as a critical tool to confirm that a
-            particular theoretical model describes our data and to make a
-            generalization from our sample to the broader population
-            (i.e., make an inference). The null hypothesis often reflects the
-            simpler of two models (e.g., 'no statistical difference',
-            'there is an additive difference of 1', etc.) that we will use to
-            build a sampling distribution for our chosen estimator. These
-            methods let us test whether our sample data are consistent with this
-            simple model (null hypothesis)."
+                    understandings.")
           ),
           box(
-            title = strong(tags$em("p"), "-values"),
+            title = strong("Neural Network"),
             status = "primary",
             collapsible = TRUE,
             collapsed = FALSE,
             width = '100%',
-            "The probability that our selected estimator takes on a value at
-            least as extreme as what we observed given our null hypothesis. If
-            we were to carry out our study infinitely many times and the null
-            hypothesis accurately modeled what we're studying, then we would
-            expect for our estimator to produce a value at least as extreme as
-            what we have seen 100*(p-value)% of the time. The larger the
-            p-value, the more often we would expect our estimator to take on a
-            value at least as extreme as what we've seen; the smaller, the less
-            often."
+            "In the diagram below you can see the general structure of a neural
+            network. Click on nodes to learn more about what their purpose is.
+            [INSERT IMAGE]"
+          ),
+          box(
+            title = strong("Activation Functions"),
+            status = "primary",
+            collapsible = TRUE,
+            collapsed = TRUE,
+            width = '100%',
+            "Activation functions are vital components in neural networks,
+            especially when it comes to distinguishing between binary and
+            multinomial classifications. In binary classification, where we
+            have to categorize data into two classes, we commonly employ the
+            sigmoid function. The sigmoid function maps input values to a range
+            between 0 and 1, giving us a convenient probability interpretation
+            for the output. Multinomial classification, however, deals with
+            categorizing data into more than two classes. In such cases, we turn
+            to the softmax activation function. Softmax transforms a vector of real
+            values into a probability distribution across multiple classes,
+            ensuring that the probabilities sum up to 1. This allows us to select
+            the class with the highest probability as the predicted class."
           )
         ),
-        #### Note: you must have at least one of the following pages. You might
-        #### have more than one type and/or more than one of the same type. This
-        #### will be up to you and the goals for your app.
         #### Set up an Explore Page ----
         tabItem(
           tabName = "explore",
           withMathJax(),
-          h2("Explore the Concept"),
-          p("This page should include something for the user to do, the more
-            active and engaging, the better. The purpose of this page is to help
-            the user build a productive understanding of the concept your app
-            is dedicated to."),
-          p("Common elements include graphs, sliders, buttons, etc."),
-          p("The following comes from the NHST Caveats App:"),
-        ),
-        #### Set up a Challenge Page ----
-        tabItem(
-          tabName = "challenge",
-          withMathJax(),
-          h2("Challenge Yourself"),
-          p("The general intent of a Challenge page is to have the user take
-            what they learned in an Exploration and apply that knowledge in new
-            contexts/situations. In essence, to have them challenge their
-            understanding by testing themselves."),
-          p("What this page looks like will be up to you. Something you might
-            consider is to re-create the tools of the Exploration page and then
-            a list of questions for the user to then answer.")
-        ),
-        #### Set up a Game Page ----
-        tabItem(
-          tabName = "game",
-          withMathJax(),
-          h2("Practice/Test Yourself with [Type of Game]"),
-          p("On this type of page, you'll set up a game for the user to play.
-            Game types include Tic-Tac-Toe, Matching, and a version Hangman to
-            name a few. If you have ideas for new game type, please let us know.")
-        ),
-        #### Set up a Wizard Page ----
-        tabItem(
-          tabName = "wizard",
-          withMathJax(),
-          h2("Wizard"),
-          p("This page will have a series of inputs and questions for the user to
-            answer/work through in order to have the app create something. These
-            types of Activity pages are currently rare as we try to avoid
-            creating 'calculators' in the BOAST project.")
+          h2("Explore the Dataset"),
+          p("This dataset being used contains 3,000 recordings (50 of each digit
+            per speaker). The digits are 0-9, and all are with english pronunciation."),
+          p("Explore the dataset below looking at the waveforms for the various
+            audio files, and take a listen!"),
+          ##### Waveform Player -----
+          fluidRow(
+            column(width = 6,
+                   actionButton("select", "Select Random Wave File"),
+                   verbatimTextOutput("fileInfo"),
+                   actionButton("play", "Play", icon("headphones"))
+            ),
+            column(width = 6,
+                   plotOutput("waveform")
+            )
+          )
         ),
         #### Set up the References Page ----
         tabItem(
           tabName = "references",
           withMathJax(),
           h2("References"),
-          p("You'll need to fill in this page with all of the appropriate
-            references for your app."),
           p(
             class = "hangingindent",
-            "Bailey, E. (2015). shinyBS: Twitter bootstrap components for shiny.
-            (v0.61). [R package]. Available from
-            https://CRAN.R-project.org/package=shinyBS"
+            "Bailey, E. (2022). shinyBS: Twitter bootstrap components for shiny.
+            (v0.61.1). [R package]. Available from https://CRAN.R-project.org/package=shinyBS"
+          ),
+          p(
+            class = "hangingindent",
+            "Carey, R. and Hatfield., N. J. (2023). boastUtils: BOAST utilities.
+            (v0.1.11.2). [R Package]. Available from
+            https://github.com/EducationShinyappTeam/boastUtils"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W. and Borges Ribeio, B. (2021). shinydashboard: Create dashboards
+            with 'Shiny'. (v0.7.2). [R Package]. Available from
+            https://CRAN.R-project.org/package=shinydashboard"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W., Cheng, J., Allaire, J.J., Sievert, C., Schloerke, B.,
+            Xie, Y., Allen, J., McPherson, J., Dipert, A., and Borges, B. (2022).
+            shiny: Web application framework for R. (v1.7.4). [R Package].
+            Available from https://CRAN.R-project.org/package=shiny"
+          ),
+          p(
+            class = "hangingindent",
+            "Perrier, V., Meyer, F., and Granjon, D. (2023). shinyWidgets: Custom
+            inputs widgets for shiny. (v0.7.6). [R Package]. Available from
+            https://CRAN.R-project.org/package=shinyWidgets"
+          ),
+          p(
+            class = "hangingindent",
+            "Sueur, J., Aubin, T., and Simonis, C. (2022). seewave: A free modular
+            tool for sound analysis and synthesis. (v2.2.0). [R Package]. Available
+            from https://www.tandfonline.com/doi/abs/10.1080/09524622.2008.9753600"
+          ),
+          p(
+            class = "hangingindent",
+            "Uwe, L., Sebastian, K., Olaf, M., and Sarah, S. (2023). tuneR:
+            Analysis of Music and Speech. (v1.4.4). [R Package].
+            Available from https://CRAN.R-project.org/package=tuneR"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H. (2016). ggplot2: Elegant graphics for data analysis.
+            (v3.4.2). [R Package]. New York:Springer-Verlag. Available from
+            https://ggplot2.tidyverse.org"
           ),
           br(),
           br(),
@@ -223,7 +230,19 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
-
+  
+  ## Set up Prereq button ----
+  observeEvent(
+    eventExpr = input$go1, 
+    handlerExpr = {
+      updateTabItems(
+        session = session,
+        inputId = "pages",
+        selected = "prerequisites"
+      )
+    }
+  )
+  
   ## Set up Info button ----
   observeEvent(
     eventExpr = input$info,
@@ -232,12 +251,42 @@ server <- function(input, output, session) {
         session = session,
         type = "info",
         title = "Information",
-        text = "This App Template will help you get started building your own app"
+        text = "Head to the Explore page to see Neural Networks in action"
       )
     }
   )
-
-
+  
+  
+  ## Set up Explore Page ----
+  waveFiles <- list.files("recordings", pattern = "\\.wav$", full.names = TRUE)
+  randomFile <- reactiveVal()
+  
+  observeEvent(input$select, {
+    randomFile(sample(waveFiles, 1))
+    output$fileInfo <- renderText(paste("Selected File:", randomFile()))
+  })
+  
+  output$waveform <- renderPlot({
+    if (!is.null(randomFile())) {
+      audio <- readWave(randomFile())
+      audio_df <- data.frame(time = 1:length(audio@left)/audio@samp.rate, amplitude = audio@left)
+      
+      first_digit <- as.integer(substring(basename(randomFile()), 1, 1))
+      
+      ggplot(audio_df, aes(x = time, y = amplitude)) +
+        geom_line() +
+        labs(title = paste("Waveform of", first_digit), x = "Time (s)", y = "Amplitude")
+    }
+  },
+  alt = "Waveform of audio"
+  )
+  
+  observeEvent(input$play, {
+    if (!is.null(randomFile())) {
+      audio <- readWave(randomFile())
+      play(audio)
+    }
+  })
 }
 
 # Boast App Call ----
