@@ -20,7 +20,7 @@ ui <- list(
     skin = "green",
     ### Create the app header ----
     dashboardHeader(
-      title = "Classification using Neural Networks", # You may use a shortened form of the title here
+      title = "Neural Networks", # You may use a shortened form of the title here
       titleWidth = 250,
       tags$li(class = "dropdown", actionLink("info", icon("info"))),
       tags$li(
@@ -281,7 +281,9 @@ server <- function(input, output, session) {
   alt = "Waveform of audio"
   )
   
-  observeEvent(input$play, {
+  observeEvent(
+    eventExpr = input$play, 
+    handlerExpr = {
     if (!is.null(randomFile())) {
       audio <- readWave(randomFile())
       play(audio)
