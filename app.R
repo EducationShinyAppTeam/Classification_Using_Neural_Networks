@@ -7,11 +7,45 @@ library(boastUtils)
 library(seewave)
 library(tuneR)
 library(ggplot2)
+library(howler)
 
 
 
 # Load additional dependencies and setup functions
-# source("global.R")
+fileNames <- list.files("www", pattern = "\\.wav$", full.names = TRUE)
+trainFileNames <- list()
+testFileNames <- list()
+
+# Define the list of speakers
+speakers <- c("george", "jackson", "lucas", "nicolas", "theo", "yweweler")
+speakersList <- c("George", "Jackson", "Lucas", "Nicolas", "Theo", "Yweweler")
+
+# Set the proportion for train-test split (80% train, 20% test)
+trainProp <- 0.8
+
+# Loop through each speaker
+for (speaker in speakers) {
+  # Filter files for the current speaker
+  speakerFiles <- fileNames[grep(paste0("_", speaker, "_"), fileNames)]
+  
+  # Calculate the number of files for training and testing
+  numTrainFiles <- ceiling(length(speakerFiles) * trainProp)
+  
+  # Randomly sample file indices for training set
+  trainIndices <- sample(length(speakerFiles), numTrainFiles, replace = FALSE)
+  
+  # Split files into training and testing sets
+  trainFiles <- speakerFiles[trainIndices]
+  testFiles <- speakerFiles[-trainIndices]
+  
+  # Append file names to the respective lists
+  trainFileNames[[speaker]] <- trainFiles
+  testFileNames[[speaker]] <- testFiles
+}
+
+# Flatten the lists to get the final training and testing file names
+trainFileNames <- unlist(trainFileNames)
+testFileNames <- unlist(testFileNames)
 
 # Define UI for App ----
 ui <- list(
@@ -42,6 +76,7 @@ ui <- list(
         menuItem("Overview", tabName = "overview", icon = icon("gauge-high")),
         menuItem("Prerequisites", tabName = "prerequisites", icon = icon("book")),
         menuItem("Explore", tabName = "explore", icon = icon("wpexplorer")),
+        menuItem("Examples", tabName = "example", icon = icon("wpexplorer")),
         menuItem("References", tabName = "references", icon = icon("leanpub"))
       ),
       tags$div(
@@ -65,12 +100,12 @@ ui <- list(
           h2("Instructions"),
           p("Review the instructions below."),
           tags$ol(
-            tags$li("Review the prerequiste iformation and ideas using the
+            tags$li("Review the prerequiste information and ideas using the
                     Prerequistes tab."),
-            tags$li("Explore the dataset Exploration Tab."),
-            tags$li("Head to the *tab* to see two neural networks in action!
-                    Dealing with examples of binary and multinomial
-                    classification in a hospital.")
+            tags$li("Explore the dataset Exploration tab."),
+            tags$li("Head to the Examples tab to see two neural networks in action!
+                    Dealing with examples of binary and multinomial classification
+                    in a hospital.")
           ),
           ##### Go Button--location will depend on your goals
           div(
@@ -88,7 +123,9 @@ ui <- list(
           br(),
           h2("Acknowledgements"),
           p(
-            "This version of the app was developed and coded by Robert Chappell",
+            "This version of the app was developed and coded by Robert Chappell,
+            special thanks to Neil Hatfield for help with finding various packages
+            and for creating the neural network diagram.",
             br(),
             br(),
             br(),
@@ -156,12 +193,42 @@ ui <- list(
           ##### Waveform Player -----
           fluidRow(
             column(width = 6,
-                   actionButton("select", "Select Random Wave File"),
-                   verbatimTextOutput("fileInfo"),
-                   actionButton("play", "Play", icon("headphones"))
+                   wellPanel(
+                     selectInput(
+                       inputId = "selectedDigit",
+                       label = "Select Digit:",
+                       choices = c("All", as.character(0:9)),  # Include "All" and digits as characters
+                       selected = "All"
+                     ),
+                     selectInput(
+                       inputId = "selectedSpeaker",
+                       label = "Select Speaker:",
+                       choices = c("All", speakersList),
+                       selected = "All"
+                     ),
+                     actionButton(
+                       inputId = "select", 
+                       label = "Select Random Wave File"
+                     )
+                   ),
+                   verbatimTextOutput("fileInfo")
             ),
             column(width = 6,
                    plotOutput("waveform")
+            )
+          )
+        ),
+        #### Set up the Examples Page ----
+        tabItem(
+          tabName = "example",
+          withMathJax(),
+          h2("Classification Examples"),
+          tabsetPanel(
+            tabPanel(
+              title = "Binary"
+            ),
+            tabPanel(
+              title = "Multinomial"
             )
           )
         ),
@@ -230,7 +297,6 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
-  
   ## Set up Prereq button ----
   observeEvent(
     eventExpr = input$go1, 
@@ -256,21 +322,50 @@ server <- function(input, output, session) {
     }
   )
   
-  
   ## Set up Explore Page ----
-  waveFiles <- list.files("recordings", pattern = "\\.wav$", full.names = TRUE)
+  # Load the training data (audio files for selected digits and speakers)
+  trainingData <- reactive({
+    selectedDigit <- as.character(input$selectedDigit)
+    selectedSpeaker <- tolower(as.character(input$selectedSpeaker))
+    
+    if (selectedDigit == "All" & selectedSpeaker == "All") {
+      # If both "All" are selected, use all data
+      fileNamesSubset <- fileNames
+    } else {
+      # Otherwise, filter based on selected digit and speaker
+      fileNamesSubset <- fileNames
+      
+      if (selectedDigit != "All") {
+        pattern <- paste0("^", selectedDigit, "_", selectedSpeaker)
+        fileNamesSubset <- fileNamesSubset[grepl(pattern, fileNamesSubset)]
+      }
+      
+      if (selectedSpeaker != "All") {
+        pattern <- paste0("_", selectedSpeaker, "_")
+        fileNamesSubset <- fileNamesSubset[grepl(pattern, fileNamesSubset)]
+      }
+    }
+    
+    fileNamesSubset
+  })
+  
+  # Randomly select a file from the training data when the "Select Random Wave File" button is clicked
   randomFile <- reactiveVal()
   
   observeEvent(input$select, {
-    randomFile(sample(waveFiles, 1))
-    output$fileInfo <- renderText(paste("Selected File:", randomFile()))
+    if (length(trainingData()) > 0) {
+      randomFile(sample(trainingData(), 1))
+      output$fileInfo <- renderText(paste("Selected File:", randomFile()))
+    } else {
+      output$fileInfo <- renderText("No files found for the selected digit and speaker.")
+    }
   })
   
+  # Render the waveform plot
   output$waveform <- renderPlot({
     if (!is.null(randomFile())) {
       audio <- readWave(randomFile())
-      audio_df <- data.frame(time = 1:length(audio@left)/audio@samp.rate, amplitude = audio@left)
-      
+      audio_df <- data.frame(time = 1:length(audio@left) / audio@samp.rate, amplitude = audio@left)
       first_digit <- as.integer(substring(basename(randomFile()), 1, 1))
       
       ggplot(audio_df, aes(x = time, y = amplitude)) +
@@ -280,15 +375,6 @@ server <- function(input, output, session) {
   },
   alt = "Waveform of audio"
   )
-  
-  observeEvent(
-    eventExpr = input$play, 
-    handlerExpr = {
-    if (!is.null(randomFile())) {
-      audio <- readWave(randomFile())
-      play(audio)
-    }
-  })
 }
 
 # Boast App Call ----
