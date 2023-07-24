@@ -1,4 +1,4 @@
-# Load Packages ----
+# Load Packages----
 library(shiny)
 library(shinydashboard)
 library(shinyBS)
@@ -9,8 +9,6 @@ library(tuneR)
 library(ggplot2)
 library(howler)
 
-
-
 # Load additional dependencies and setup functions
 fileNames <- list.files("www", pattern = "\\.wav$", full.names = TRUE)
 trainFileNames <- list()
@@ -18,7 +16,6 @@ testFileNames <- list()
 
 # Define the list of speakers
 speakers <- c("george", "jackson", "lucas", "nicolas", "theo", "yweweler")
-speakersList <- c("George", "Jackson", "Lucas", "Nicolas", "Theo", "Yweweler")
 
 # Set the proportion for train-test split (80% train, 20% test)
 trainProp <- 0.8
@@ -145,11 +142,16 @@ ui <- list(
           p("In order to get the most out of this app, please review the
             following:"),
           tags$ul(
-            tags$li("Binary Classification--Technical/Conceptual Prerequisites are ideas that
-                    users need to have in order to engage with your app fully."),
-            tags$li("Multinomial Classification--Contextual Prerequisites refer to any information
-                    about a context in your app that will enrich a user's
-                    understandings.")
+            tags$li("Binary Classification--Binary classification is a type of
+                    machine learning where data is grouped into two categories,
+                    and the goal is to predict which category new data belongs to.
+                    Common examples include spam detection and medical diagnosis."),
+            tags$li("Multinomial Classification--Multinomial classification is a
+                    machine learning task where data is sorted into three or more
+                    exclusive categories, and the goal is to predict which
+                    category new data falls into. Examples include image
+                    recognition and text
+                    categorization with various topics.")
           ),
           box(
             title = strong("Neural Network"),
@@ -197,13 +199,13 @@ ui <- list(
                      selectInput(
                        inputId = "selectedDigit",
                        label = "Select Digit:",
-                       choices = c("All", as.character(0:9)),  # Include "All" and digits as characters
+                       choices = c("All", 0:9),
                        selected = "All"
                      ),
                      selectInput(
                        inputId = "selectedSpeaker",
                        label = "Select Speaker:",
-                       choices = c("All", speakersList),
+                       choices = c("All", speakers),
                        selected = "All"
                      ),
                      actionButton(
@@ -211,7 +213,11 @@ ui <- list(
                        label = "Select Random Wave File"
                      )
                    ),
-                   verbatimTextOutput("fileInfo")
+                   verbatimTextOutput("fileInfo"),
+                   howler("sound", "9_george_17.wav"),
+                   howlerPlayPauseButton(
+                     "sound"
+                   )
             ),
             column(width = 6,
                    plotOutput("waveform")
@@ -297,6 +303,7 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
+  
   ## Set up Prereq button ----
   observeEvent(
     eventExpr = input$go1, 
@@ -326,7 +333,7 @@ server <- function(input, output, session) {
   # Load the training data (audio files for selected digits and speakers)
   trainingData <- reactive({
     selectedDigit <- as.character(input$selectedDigit)
-    selectedSpeaker <- tolower(as.character(input$selectedSpeaker))
+    selectedSpeaker <- input$selectedSpeaker
     
     if (selectedDigit == "All" & selectedSpeaker == "All") {
       # If both "All" are selected, use all data
@@ -334,15 +341,13 @@ server <- function(input, output, session) {
     } else {
       # Otherwise, filter based on selected digit and speaker
       fileNamesSubset <- fileNames
-      
       if (selectedDigit != "All") {
-        pattern <- paste0("^", selectedDigit, "_", selectedSpeaker)
-        fileNamesSubset <- fileNamesSubset[grepl(pattern, fileNamesSubset)]
+        fileNamesSubset <- fileNamesSubset[grep(paste0("_", selectedDigit, "_"), 
+                                                fileNamesSubset)]
       }
-      
       if (selectedSpeaker != "All") {
-        pattern <- paste0("_", selectedSpeaker, "_")
-        fileNamesSubset <- fileNamesSubset[grepl(pattern, fileNamesSubset)]
+        fileNamesSubset <- fileNamesSubset[grep(paste0("_", selectedSpeaker, "_"),
+                                                fileNamesSubset)]
       }
     }
     
@@ -373,8 +378,35 @@ server <- function(input, output, session) {
         labs(title = paste("Waveform of", first_digit), x = "Time (s)", y = "Amplitude")
     }
   },
-  alt = "Waveform of audio"
-  )
+  alt = "Waveform of audio")
+  
+  # Initialize Howler audio on app start
+  observe({
+    audioPlayer <- input$howlerPlayer
+    if (!is.null(audioPlayer) && !is.null(randomFile())) {
+      audioPlayer$load(randomFile())
+    }
+  })
+  
+  # Render the Howler play/pause button
+  output$howlerDiv <- renderUI({
+    if (!is.null(randomFile())) {
+      howlerButton(
+        howler_id = "howlerPlayer",  # Provide the howler_id explicitly
+        inputId = "howlerButton",
+        label = "Play Audio",
+        src = basename(randomFile()),
+        autoplay = FALSE,
+        preload = TRUE,
+        style = "width: 100%; font-size: 16px;"
+        )
+    }
+  })
+  
+  # Play/pause the audio on button click
+  observeEvent(input$howlerButton, {
+    toggleHowler("howlerPlayer")
+  })
 }
 
 # Boast App Call ----
