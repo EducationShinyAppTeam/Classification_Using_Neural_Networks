@@ -5,7 +5,7 @@ Lifecycle: experimental
 Authors@R: c(
     person(given = "Rob", family = "Chappell", email = "rwc5541@psu.edu", role = c("aut", "cre")),
     person(given = "Neil", family = "Hatfield", email = "neil.hatfield@psu.edu", role = c("aut")),
-    person(given = "Robert", family = "Carey", email = "rpc5102@psu.edu", role = c("aut"))
+    person(given = "Dennis", family = "Pearl", email = "rpc5102@psu.edu", role = c("aut"))
   )
 Chapter: Data Science
 Description: This app is focused on the structure of neural networks, showing how they perform in speech recognition.

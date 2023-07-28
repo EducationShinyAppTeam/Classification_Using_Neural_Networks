@@ -4,45 +4,19 @@ library(shinydashboard)
 library(shinyBS)
 library(shinyWidgets)
 library(boastUtils)
+library(dplyr)
 library(seewave)
 library(tuneR)
 library(ggplot2)
 library(howler)
 
 # Load additional dependencies and setup functions
-fileNames <- list.files("www", pattern = "\\.wav$", full.names = TRUE)
-trainFileNames <- list()
-testFileNames <- list()
-
-# Define the list of speakers
+source("neuralNet.R")
+trainNNData <- read.csv("~/BOAST Program 2023/Classification_Using_Neural_Networks/trainNNData.csv")
+trainNNData <- na.omit(trainNNData)
+testNNData <- read.csv("~/BOAST Program 2023/Classification_Using_Neural_Networks/testNNData.csv")
 speakers <- c("george", "jackson", "lucas", "nicolas", "theo", "yweweler")
 
-# Set the proportion for train-test split (80% train, 20% test)
-trainProp <- 0.8
-
-# Loop through each speaker
-for (speaker in speakers) {
-  # Filter files for the current speaker
-  speakerFiles <- fileNames[grep(paste0("_", speaker, "_"), fileNames)]
-  
-  # Calculate the number of files for training and testing
-  numTrainFiles <- ceiling(length(speakerFiles) * trainProp)
-  
-  # Randomly sample file indices for training set
-  trainIndices <- sample(length(speakerFiles), numTrainFiles, replace = FALSE)
-  
-  # Split files into training and testing sets
-  trainFiles <- speakerFiles[trainIndices]
-  testFiles <- speakerFiles[-trainIndices]
-  
-  # Append file names to the respective lists
-  trainFileNames[[speaker]] <- trainFiles
-  testFileNames[[speaker]] <- testFiles
-}
-
-# Flatten the lists to get the final training and testing file names
-trainFileNames <- unlist(trainFileNames)
-testFileNames <- unlist(testFileNames)
 
 # Define UI for App ----
 ui <- list(
@@ -150,18 +124,30 @@ ui <- list(
                     machine learning task where data is sorted into three or more
                     exclusive categories, and the goal is to predict which
                     category new data falls into. Examples include image
-                    recognition and text
-                    categorization with various topics.")
+                    recognition and text categorization with various topics.")
           ),
-          box(
-            title = strong("Neural Network"),
-            status = "primary",
-            collapsible = TRUE,
-            collapsed = FALSE,
-            width = '100%',
+          tags$strong("Neural Network Structure"),
+          p(
             "In the diagram below you can see the general structure of a neural
-            network. Click on nodes to learn more about what their purpose is.
-            [INSERT IMAGE]"
+            network. Click on nodes to learn more about what their purpose is."),
+            div(
+              id = "centeredBox",
+              style = "text-align: center;",
+              width = "200%",
+              neuralNet
+              ,
+              tags$script(HTML(
+                "document.getElementById('neuralNet').focus();
+      $('#objects').on('click', '.highlightNode', (ev) => {
+        Shiny.setInputValue('clickedElement', ev.target.id);
+      })"
+              )),
+      tags$script(HTML(
+        "document.getElementById('neuralNet').focus();
+      $('#objects').on('click', '.highlightArrow', (ev) => {
+        Shiny.setInputValue('clickedElement', ev.target.parentNode.parentNode.id);
+      })"
+      )),
           ),
           box(
             title = strong("Activation Functions"),
@@ -214,10 +200,7 @@ ui <- list(
                      )
                    ),
                    verbatimTextOutput("fileInfo"),
-                   howler("sound", "9_george_17.wav"),
-                   howlerPlayPauseButton(
-                     "sound"
-                   )
+                   uiOutput("howlerDiv")
             ),
             column(width = 6,
                    plotOutput("waveform")
@@ -316,6 +299,7 @@ server <- function(input, output, session) {
     }
   )
   
+  
   ## Set up Info button ----
   observeEvent(
     eventExpr = input$info,
@@ -332,23 +316,18 @@ server <- function(input, output, session) {
   ## Set up Explore Page ----
   # Load the training data (audio files for selected digits and speakers)
   trainingData <- reactive({
-    selectedDigit <- as.character(input$selectedDigit)
+    selectedDigit <- input$selectedDigit
     selectedSpeaker <- input$selectedSpeaker
     
     if (selectedDigit == "All" & selectedSpeaker == "All") {
       # If both "All" are selected, use all data
-      fileNamesSubset <- fileNames
+      fileNamesSubset <- trainNNData$filedir
     } else {
-      # Otherwise, filter based on selected digit and speaker
-      fileNamesSubset <- fileNames
-      if (selectedDigit != "All") {
-        fileNamesSubset <- fileNamesSubset[grep(paste0("_", selectedDigit, "_"), 
-                                                fileNamesSubset)]
-      }
-      if (selectedSpeaker != "All") {
-        fileNamesSubset <- fileNamesSubset[grep(paste0("_", selectedSpeaker, "_"),
-                                                fileNamesSubset)]
-      }
+      # Filter based on both selected digit and speaker
+      fileNamesSubset <- trainNNData %>%
+        filter(digit == selectedDigit | selectedDigit == "All") %>%
+        filter(speaker == selectedSpeaker | selectedSpeaker == "All") %>%
+        pull(filedir)
     }
     
     fileNamesSubset
@@ -357,34 +336,38 @@ server <- function(input, output, session) {
   # Randomly select a file from the training data when the "Select Random Wave File" button is clicked
   randomFile <- reactiveVal()
   
-  observeEvent(input$select, {
+  observeEvent(
+    eventExpr = input$select, 
+    handlerExpr = {
     if (length(trainingData()) > 0) {
       randomFile(sample(trainingData(), 1))
       output$fileInfo <- renderText(paste("Selected File:", randomFile()))
     } else {
       output$fileInfo <- renderText("No files found for the selected digit and speaker.")
     }
-  })
+  }
+  )
   
   # Render the waveform plot
-  output$waveform <- renderPlot({
+  output$waveform <- renderPlot(
+    expr = {
     if (!is.null(randomFile())) {
-      audio <- readWave(randomFile())
+      audio <- readWave(paste0("www/", randomFile()))
       audio_df <- data.frame(time = 1:length(audio@left) / audio@samp.rate, amplitude = audio@left)
-      first_digit <- as.integer(substring(basename(randomFile()), 1, 1))
+      firstDigit <- as.integer(substring(basename(randomFile()), 1, 1))
       
       ggplot(audio_df, aes(x = time, y = amplitude)) +
         geom_line() +
-        labs(title = paste("Waveform of", first_digit), x = "Time (s)", y = "Amplitude")
+        labs(title = paste("Waveform of", firstDigit), x = "Time (s)", y = "Amplitude")
     }
   },
   alt = "Waveform of audio")
   
-  # Initialize Howler audio on app start
+  # Initialize Howler audio on app start and when random file is selected
   observe({
     audioPlayer <- input$howlerPlayer
     if (!is.null(audioPlayer) && !is.null(randomFile())) {
-      audioPlayer$load(randomFile())
+      audioPlayer$load(paste0("www/", randomFile()))
     }
   })
   
@@ -392,14 +375,15 @@ server <- function(input, output, session) {
   output$howlerDiv <- renderUI({
     if (!is.null(randomFile())) {
       howlerButton(
-        howler_id = "howlerPlayer",  # Provide the howler_id explicitly
+        howler_id = "howlerPlayer",
+        button_type = "play_pause",
         inputId = "howlerButton",
         label = "Play Audio",
-        src = basename(randomFile()),
+        src = paste0("www/", randomFile()),  # Use the selected waveform audio file
         autoplay = FALSE,
         preload = TRUE,
         style = "width: 100%; font-size: 16px;"
-        )
+      )
     }
   })
   
@@ -407,6 +391,7 @@ server <- function(input, output, session) {
   observeEvent(input$howlerButton, {
     toggleHowler("howlerPlayer")
   })
+  
 }
 
 # Boast App Call ----
