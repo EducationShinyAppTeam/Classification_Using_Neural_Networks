@@ -12,9 +12,9 @@ library(howler)
 
 # Load additional dependencies and setup functions
 source("neuralNet.R")
-trainNNData <- read.csv("~/BOAST Program 2023/Classification_Using_Neural_Networks/trainNNData.csv")
+trainNNData <- read.csv(file = "trainNNData.csv", header = TRUE)
 trainNNData <- na.omit(trainNNData)
-testNNData <- read.csv("~/BOAST Program 2023/Classification_Using_Neural_Networks/testNNData.csv")
+testNNData <- read.csv(file = "testNNData.csv", header = TRUE)
 speakers <- c("george", "jackson", "lucas", "nicolas", "theo", "yweweler")
 
 
@@ -149,25 +149,17 @@ ui <- list(
       })"
       )),
           ),
-          box(
-            title = strong("Activation Functions"),
-            status = "primary",
-            collapsible = TRUE,
-            collapsed = TRUE,
-            width = '100%',
-            "Activation functions are vital components in neural networks,
-            especially when it comes to distinguishing between binary and
-            multinomial classifications. In binary classification, where we
-            have to categorize data into two classes, we commonly employ the
-            sigmoid function. The sigmoid function maps input values to a range
+          strong("Activation Functions"),
+            p(
+            "Activation functions are vital components in neural networks.
+            In binary classification, we use the sigmoid function. The sigmoid function maps input values to a range
             between 0 and 1, giving us a convenient probability interpretation
-            for the output. Multinomial classification, however, deals with
-            categorizing data into more than two classes. In such cases, we turn
-            to the softmax activation function. Softmax transforms a vector of real
+            for the output. Multinomial classification, however, we use the 
+            softmax activation function. Softmax transforms a vector of real
             values into a probability distribution across multiple classes,
             ensuring that the probabilities sum up to 1. This allows us to select
-            the class with the highest probability as the predicted class."
-          )
+            the class with the highest probability as the predicted class.")
+          
         ),
         #### Set up an Explore Page ----
         tabItem(
@@ -200,7 +192,8 @@ ui <- list(
                      )
                    ),
                    verbatimTextOutput("fileInfo"),
-                   uiOutput("howlerDiv")
+                   howler(elementId = "sound", tracks = trainNNData$filedir),
+                   howlerPlayPauseButton("sound")
             ),
             column(width = 6,
                    plotOutput("waveform")
@@ -345,6 +338,10 @@ server <- function(input, output, session) {
     } else {
       output$fileInfo <- renderText("No files found for the selected digit and speaker.")
     }
+      changeTrack(
+        id = "sound",
+        track = paste0("www/", randomFile())
+      )
   }
   )
   
@@ -354,43 +351,20 @@ server <- function(input, output, session) {
     if (!is.null(randomFile())) {
       audio <- readWave(paste0("www/", randomFile()))
       audio_df <- data.frame(time = 1:length(audio@left) / audio@samp.rate, amplitude = audio@left)
-      firstDigit <- as.integer(substring(basename(randomFile()), 1, 1))
-      
+      firstDigit <- unlist(strsplit(randomFile(), "_"))[1]
+      speakerName <- unlist(strsplit(randomFile(), "_"))[2]
       ggplot(audio_df, aes(x = time, y = amplitude)) +
         geom_line() +
-        labs(title = paste("Waveform of", firstDigit), x = "Time (s)", y = "Amplitude")
+        labs(title = paste("Waveform of", speakerName, "saying", firstDigit),
+             x = "Time (s)", y = "Amplitude")+
+        theme(text = element_text(size = 18),
+              plot.title = element_text(size = 18))+
+        theme_bw()
     }
   },
   alt = "Waveform of audio")
   
-  # Initialize Howler audio on app start and when random file is selected
-  observe({
-    audioPlayer <- input$howlerPlayer
-    if (!is.null(audioPlayer) && !is.null(randomFile())) {
-      audioPlayer$load(paste0("www/", randomFile()))
-    }
-  })
   
-  # Render the Howler play/pause button
-  output$howlerDiv <- renderUI({
-    if (!is.null(randomFile())) {
-      howlerButton(
-        howler_id = "howlerPlayer",
-        button_type = "play_pause",
-        inputId = "howlerButton",
-        label = "Play Audio",
-        src = paste0("www/", randomFile()),  # Use the selected waveform audio file
-        autoplay = FALSE,
-        preload = TRUE,
-        style = "width: 100%; font-size: 16px;"
-      )
-    }
-  })
-  
-  # Play/pause the audio on button click
-  observeEvent(input$howlerButton, {
-    toggleHowler("howlerPlayer")
-  })
   
 }
 

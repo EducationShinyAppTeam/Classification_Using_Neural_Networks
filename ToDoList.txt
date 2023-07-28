@@ -4,3 +4,4 @@
 
 # Ideas for Future Development
 Import own audio
+Add vertical line for the waveform to match
