@@ -1,6 +1,6 @@
 # Things Needed for This Version
-1. Finish Prereq
-2. Work on Explore functionality
+1. add text popups for svg file
+2. make NN
 
 # Ideas for Future Development
 Import own audio

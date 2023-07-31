@@ -149,7 +149,9 @@ ui <- list(
       })"
       )),
           ),
-          strong("Activation Functions"),
+      textOutput("displayText"),
+      br(),
+      strong("Activation Functions"),
             p(
             "Activation functions are vital components in neural networks.
             In binary classification, we use the sigmoid function. The sigmoid function maps input values to a range
@@ -279,6 +281,69 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
+  
+  #### Set up SVG ----
+  displayedText <- reactiveVal("")
+  
+  # Observe click events on nodes or arrows
+  observeEvent(
+    eventExpr = input$clickedElement, 
+    handlerExpr = {
+    # Get the ID of the clicked element
+    clickedId <- input$clickedElement
+    
+    if (substr(clickedId, 1, 5) == "input") {
+      displayedText("The input layer nodes receive the raw input data.
+                    Each node corresponds to a specific feature/variable,
+                    and the entire input layer serves as the initial data
+                    representation for the neural network.")
+    }
+    else if (substr(clickedId, 1, 5) == "node1") {
+      displayedText("Each node in the first hidden layer performs a weighted
+                    summation of its inputs received from the input layer. It
+                    then applies an activation function to produce an output
+                    value, introducing non-linearity to the neural network.")
+    } 
+    else if (substr(clickedId, 1, 5) == "node2") {
+      displayedText("Similar to the first hidden layer, each node in the second
+                    hidden layer performs a weighted summation of its inputs and
+                    applies an activation function to generate an output")
+    } 
+    else if (clickedId == "output") {
+      displayedText("The output node receives the weighted inputs from the
+                    second hidden layer and performs its own weighted summation.
+                    Then, an appropriate activation function is applied to
+                    produce the final output of the neural network, representing
+                    the predicted class or category for the given input data in
+                    the classification example")
+    }
+    else if (clickedId == "connections1") {
+      displayedText("The input nodes are connected to the nodes in the first
+                    hidden layer through weighted connections. These weights
+                    determine the importance of each input feature in 
+                    influencing the activations of the first hidden layer nodes.")
+    }
+    else if (clickedId == "connections2") {
+      displayedText("The outputs of the first hidden layer nodes are connected
+                    to the nodes in the second hidden layer with their
+                    respective weights. This allows the second hidden layer to
+                    receive and process information from the first hidden layer.")
+    }
+    else if (clickedId == "connections3") {
+      displayedText("The outputs from the second hidden layer nodes are
+                    connected to the output node through weighted connections.
+                    These weights determine the final influence of the second 
+                    hidden layer's activations on the output.")
+    }
+  }
+  )
+  
+  # Output the displayed text to the UI
+  output$displayText <- renderText(
+    expr = {
+    displayedText()
+  })
+  
   
   ## Set up Prereq button ----
   observeEvent(
