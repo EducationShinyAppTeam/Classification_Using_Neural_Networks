@@ -4,17 +4,19 @@ library(shinydashboard)
 library(shinyBS)
 library(shinyWidgets)
 library(boastUtils)
+library(ggplot2)
 library(dplyr)
 library(seewave)
 library(tuneR)
-library(ggplot2)
 library(howler)
 
-# Load additional dependencies and setup functions
+# Load additional dependencies and setup functions ----
 source("neuralNet.R")
 trainNNData <- read.csv(file = "trainNNData.csv", header = TRUE)
 trainNNData <- na.omit(trainNNData)
 testNNData <- read.csv(file = "testNNData.csv", header = TRUE)
+binaryTestData <- testNNData %>%
+  filter(digit == 0 | digit == 1) 
 speakers <- c("george", "jackson", "lucas", "nicolas", "theo", "yweweler")
 
 
@@ -169,7 +171,7 @@ ui <- list(
           withMathJax(),
           h2("Explore the Dataset"),
           p("This dataset being used contains 3,000 recordings (50 of each digit
-            per speaker). The digits are 0-9, and all are with english pronunciation."),
+            per speaker). The digits are 0-9, and all speakers are male, with English pronunciation."),
           p("Explore the dataset below looking at the waveforms for the various
             audio files, and take a listen!"),
           ##### Waveform Player -----
@@ -193,7 +195,7 @@ ui <- list(
                        label = "Select Random Wave File"
                      )
                    ),
-                   verbatimTextOutput("fileInfo"),
+                   tags$strong("Click the play button below to listen to audio!"),
                    howler(elementId = "sound", tracks = trainNNData$filedir),
                    howlerPlayPauseButton("sound")
             ),
@@ -209,10 +211,82 @@ ui <- list(
           h2("Classification Examples"),
           tabsetPanel(
             tabPanel(
-              title = "Binary"
+              title = "Binary",
+              br(),
+              p("Let's look at a practical use of a neural network performing
+                binary classification. You are walking into your local hospital,
+                you get into the elevator and you have to say 'Zero' to leave, 
+                and say 'One' to go up. Lets look at how a neural network performs
+                in this situation."),
+              br(),
+              fluidRow(
+                column(
+                  width = 4,
+                  wellPanel(
+                    sliderInput(
+                      inputId = "nLayer",
+                      label = "Number of Hidden Layers in Neural Network",
+                      min = 0, 
+                      max = 3,
+                      value = 1, 
+                      step = 1
+                    ),
+                    br(),
+                  actionButton(
+                    inputId = "simulateBinary",
+                    label = "Simulate with test data"
+                    )
+                  )
+                ),
+                column(
+                  width = 8,
+                  tableOutput("accuracyTableBinary")
+                )
+              ),
+              tags$strong("Questions to Ponder"),
+              p("Do the amount of hidden layers affect the accuracy? Why?"),
+              br(),
+              p("What are some reasons the neural network could misunderstand the
+                number said?")
             ),
             tabPanel(
-              title = "Multinomial"
+              title = "Multinomial",
+              br(),
+              p("Let's look at a practical use of a neural network performing
+                multinomial classification. You are in the elevator at
+                your local hospital, you must speak the floor you want go up to,
+                with floors two through nine. Lets look at how a neural network
+                performs in this situation."),
+              br(),
+              fluidRow(
+                column(
+                  width = 4,
+                  wellPanel(
+                    sliderInput(
+                      inputId = "nLayerM",
+                      label = "Number of Hidden Layers in Neural Network",
+                      min = 0, 
+                      max = 3,
+                      value = 1, 
+                      step = 1
+                    ),
+                    br(),
+                    actionButton(
+                      inputId = "simulateMulti",
+                      label = "Simulate with test data"
+                    )
+                  )
+                ),
+                column(
+                  width = 8,
+                  tableOutput("accuracyTableMulti")
+                )
+              ),
+              br(),
+              tags$strong("Questions to Ponder"),
+              p("What numbers does the neural network struggle with? Why?"),
+              br(),
+              p("Is the trend with accuracy the same as binary classification?")
             )
           )
         ),
@@ -225,6 +299,12 @@ ui <- list(
             class = "hangingindent",
             "Bailey, E. (2022). shinyBS: Twitter bootstrap components for shiny.
             (v0.61.1). [R package]. Available from https://CRAN.R-project.org/package=shinyBS"
+          ),
+          p(
+            class = "hangingindent",
+            "Baldry, A. and Simpson, J. (2022). howler: 'Shiny' Extension of 'howler.js'.
+            (version 0.2.1). [R package] Available from
+            <https://CRAN.R-project.org/package=howler>."
           ),
           p(
             class = "hangingindent",
@@ -268,6 +348,12 @@ ui <- list(
             "Wickham, H. (2016). ggplot2: Elegant graphics for data analysis.
             (v3.4.2). [R Package]. New York:Springer-Verlag. Available from
             https://ggplot2.tidyverse.org"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H. François, R. Henry, L. Müller, K. and Vaughan, D. (2023).
+            dplyr: A Grammar of Data Manipulation. (v1.1.2). [R package].
+            Available from <https://CRAN.R-project.org/package=dplyr>."
           ),
           br(),
           br(),
@@ -429,7 +515,7 @@ server <- function(input, output, session) {
   },
   alt = "Waveform of audio")
   
-  
+  #### Set up Binary Example Page----
   
 }
 
