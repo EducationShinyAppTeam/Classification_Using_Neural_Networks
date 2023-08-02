@@ -171,10 +171,10 @@ ui <- list(
           withMathJax(),
           h2("Explore the Dataset"),
           p("This dataset being used contains 3,000 recordings (50 of each digit
-            per speaker). The digits are 0-9, and all speakers are male, with English pronunciation."),
+            per speaker). The digits are 0-9, and all speakers are male, with 
+            English pronunciation."),
           p("Explore the dataset below looking at the waveforms for the various
             audio files, and take a listen!"),
-          ##### Waveform Player -----
           fluidRow(
             column(width = 6,
                    wellPanel(
@@ -195,7 +195,8 @@ ui <- list(
                        label = "Select Random Wave File"
                      )
                    ),
-                   tags$strong("Click the play button below to listen to audio!"),
+                   tags$strong("To listen to audio click the play button!"),
+                   br(),
                    howler(elementId = "sound", tracks = trainNNData$filedir),
                    howlerPlayPauseButton("sound")
             ),
@@ -216,8 +217,9 @@ ui <- list(
               p("Let's look at a practical use of a neural network performing
                 binary classification. You are walking into your local hospital,
                 you get into the elevator and you have to say 'Zero' to leave, 
-                and say 'One' to go up. Lets look at how a neural network performs
-                in this situation."),
+                and say 'One' to go up. The data used in splitting the dataset
+                was split using stratified sampling, with an 80-20 train-test split. 
+                Lets look at how a neural network performs in this situation."),
               br(),
               fluidRow(
                 column(
@@ -510,7 +512,10 @@ server <- function(input, output, session) {
              x = "Time (s)", y = "Amplitude")+
         theme(text = element_text(size = 18),
               plot.title = element_text(size = 18))+
-        theme_bw()
+        theme_bw() +
+        scale_x_continuous(
+          limits = c(0, 0.6)
+        )
     }
   },
   alt = "Waveform of audio")
