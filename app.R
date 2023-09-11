@@ -12,6 +12,7 @@ library(howler)
 
 # Load additional dependencies and setup functions ----
 source("neuralNet.R")
+
 trainNNData <- read.csv(file = "trainNNData.csv", header = TRUE)
 trainNNData <- na.omit(trainNNData)
 testNNData <- read.csv(file = "testNNData.csv", header = TRUE)
