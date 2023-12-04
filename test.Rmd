@@ -1,0 +1,563 @@
+---
+title: "Confusion Matrix Creation"
+output: html_document
+date: "2023-11-27"
+---
+
+```{r setup, include=FALSE}
+packages <- c(
+    "tidyverse",
+    "kableExtra",
+    "IRdisplay",
+    "car",
+    "corrplot",
+    "torch",
+    "torchvision",
+    "luz",
+    "tibble"
+)
+
+# renv::install(packages)
+sapply(packages, require, character.only = TRUE)
+
+```
+
+```{r}
+transform <- function(x) x %>% 
+    torch_tensor() %>% 
+    torch_flatten() %>% 
+    torch_div(255)
+```
+
+
+```{r}
+dir <- "./mnist"
+
+train_ds <- mnist_dataset(
+    root = dir,
+    train = TRUE,
+    download = TRUE,
+    transform = transform
+)
+test_ds <- mnist_dataset(
+    root = dir,
+    train = FALSE,
+    download = TRUE,
+    transform = transform
+)
+train_dl <- dataloader(train_ds, batch_size = 1024, shuffle = TRUE)
+test_dl <- dataloader(test_ds, batch_size = 1024)
+```
+
+#### Three Layer
+
+```{r}
+NNet_3 <- nn_module(
+  initialize = function(p, q1, q2, q3, o) {
+    self$hidden1 <- nn_linear(p, q1)
+    self$hidden2 <- nn_linear(q1, q2)
+    self$hidden3 <- nn_linear(q2, q3)
+    self$OUTPUT <- nn_linear(q3, o)
+    self$activation <- nn_relu()
+  },
+  forward = function(x) {
+    x %>%
+      self$hidden1() %>%
+      self$activation() %>%
+      self$hidden2() %>%
+      self$activation() %>%
+      self$hidden3() %>%
+      self$activation() %>%
+      self$OUTPUT()
+  }
+)
+```
+
+```{r}
+fit_nn310 <- NNet_3 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, q2=128, q3=64, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 10,
+  data = train_dl,
+  valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN310_preds <- fit_nn310 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+```
+
+```{r}
+nn310 <- mean(NN310_preds == test_ds$targets)
+```
+
+```{r}
+nn310cm <- table(NN310_preds - 1, test_ds$targets - 1)
+dimnames(nn310cm) <- list(reference = dimnames(nn310cm)[[1]], predicted = dimnames(nn310cm)[[2]])
+```
+
+```{r}
+fit_nn35 <- NNet_3 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, q2=128, q3=64, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 5,
+  data = train_dl,
+  valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN35_preds <- fit_nn35 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+```
+
+```{r}
+nn35 <- mean(NN35_preds == test_ds$targets)
+```
+
+```{r}
+nn35cm <- table(NN35_preds - 1, test_ds$targets - 1)
+dimnames(nn35cm) <- list(reference = dimnames(nn35cm)[[1]], predicted = dimnames(nn35cm)[[2]])
+```
+
+```{r}
+fit_nn31 <- NNet_3 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, q2=128, q3=64, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 1,
+  data = train_dl,
+  valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN31_preds <- fit_nn31 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+```
+
+```{r}
+nn31 <- mean(NN31_preds == test_ds$targets)
+```
+
+```{r}
+nn31cm <- table(NN31_preds - 1, test_ds$targets - 1)
+dimnames(nn31cm) <- list(reference = dimnames(nn31cm)[[1]], predicted = dimnames(nn31cm)[[2]])
+```
+
+#### Two Layer
+
+```{r}
+NNet_2 <- nn_module(
+  initialize = function(p, q1, q2, o) {
+    self$hidden1 <- nn_linear(p, q1)
+    self$hidden2 <- nn_linear(q1, q2)
+    self$OUTPUT <- nn_linear(q2, o)
+    self$activation <- nn_relu()
+  },
+  forward = function(x) {
+    x %>%
+      self$hidden1() %>%
+      self$activation() %>%
+      self$hidden2() %>%
+      self$activation() %>%
+      self$OUTPUT()
+  }
+)
+fit_nn210 <- NNet_2 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, q2=128, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 10,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN210_preds <- fit_nn210 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn210 <- mean(NN210_preds == test_ds$targets)
+```
+
+```{r}
+nn210cm <- table(NN210_preds - 1, test_ds$targets - 1)
+dimnames(nn210cm) <- list(reference = dimnames(nn210cm)[[1]], predicted = dimnames(nn210cm)[[2]])
+```
+
+```{r}
+fit_nn25 <- NNet_2 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, q2=128, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 5,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN25_preds <- fit_nn25 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn25 <- mean(NN25_preds == test_ds$targets)
+```
+
+```{r}
+nn25cm <- table(NN25_preds - 1, test_ds$targets - 1)
+dimnames(nn25cm) <- list(reference = dimnames(nn25cm)[[1]], predicted = dimnames(nn25cm)[[2]])
+```
+
+```{r}
+fit_nn21 <- NNet_2 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, q2=128, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 1,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN21_preds <- fit_nn21 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn21 <- mean(NN21_preds == test_ds$targets)
+```
+
+```{r}
+nn21cm <- table(NN21_preds - 1, test_ds$targets - 1)
+dimnames(nn21cm) <- list(reference = dimnames(nn21cm)[[1]], predicted = dimnames(nn21cm)[[2]])
+```
+
+#### One Layer
+
+```{r}
+NNet_1 <- nn_module(
+  initialize = function(p, q1, o) {
+    self$hidden1 <- nn_linear(p, q1)
+    self$OUTPUT <- nn_linear(q1, o)
+    self$activation <- nn_relu()
+  },
+  forward = function(x) {
+    x %>%
+      self$hidden1() %>%
+      self$activation() %>%
+      self$OUTPUT()
+  }
+)
+fit_nn110 <- NNet_1 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 10,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN110_preds <- fit_nn110 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn110 <- mean(NN110_preds == test_ds$targets)
+```
+
+```{r}
+nn110cm <- table(NN110_preds - 1, test_ds$targets - 1)
+dimnames(nn110cm) <- list(reference = dimnames(nn110cm)[[1]], predicted = dimnames(nn110cm)[[2]])
+```
+
+```{r}
+fit_nn15 <- NNet_1 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 5,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN15_preds <- fit_nn15 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn15 <- mean(NN15_preds == test_ds$targets)
+```
+
+```{r}
+nn15cm <- table(NN15_preds - 1, test_ds$targets - 1)
+dimnames(nn15cm) <- list(reference = dimnames(nn15cm)[[1]], predicted = dimnames(nn15cm)[[2]])
+```
+
+```{r}
+fit_nn1 <- NNet_1 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, q1=256, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 1,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN1_preds <- fit_nn1 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn1 <- mean(NN1_preds == test_ds$targets)
+```
+
+```{r}
+nn1cm <- table(NN1_preds - 1, test_ds$targets - 1)
+dimnames(nn1cm) <- list(reference = dimnames(nn1cm)[[1]], predicted = dimnames(nn1cm)[[2]])
+```
+
+#### Zero Layer
+
+```{r}
+NNet_0 <- nn_module(
+  initialize = function(p, o) {
+    self$OUTPUT <- nn_linear(p, o)
+    self$activation <- nn_relu()
+  },
+  forward = function(x) {
+    x %>%
+      self$OUTPUT()
+  }
+)
+fit_nn010 <- NNet_0 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 10,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN010_preds <- fit_nn010 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn010 <- mean(NN010_preds == test_ds$targets)
+```
+
+```{r}
+nn010cm <- table(NN010_preds - 1, test_ds$targets - 1)
+dimnames(nn010cm) <- list(reference = dimnames(nn010cm)[[1]], predicted = dimnames(nn010cm)[[2]])
+```
+
+```{r}
+fit_nn05 <- NNet_0 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 5,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN05_preds <- fit_nn05 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn05 <- mean(NN05_preds == test_ds$targets)
+```
+
+```{r}
+nn05cm <- table(NN05_preds - 1, test_ds$targets - 1)
+dimnames(nn05cm) <- list(reference = dimnames(nn05cm)[[1]], predicted = dimnames(nn05cm)[[2]])
+```
+
+```{r}
+fit_nn01 <- NNet_0 %>%
+  # Setup the model
+  setup(
+    loss = nn_cross_entropy_loss(),
+    optimizer = optim_adam,
+    metrics = list(
+      luz_metric_accuracy()
+    )
+  ) %>%
+  # Set the hyperparameters
+  set_hparams(p=28*28, o=10) %>%
+  # Fit the model
+fit(
+  epochs = 1,
+  data = train_dl,
+  # valid_data = test_dl,
+  verbose=TRUE
+)
+```
+
+```{r}
+NN01_preds <- fit_nn01 %>% 
+  predict(test_ds) %>% 
+  torch_argmax(dim = 2) %>%
+  as_array()
+nn01 <- mean(NN01_preds == test_ds$targets)
+```
+
+```{r}
+nn01cm <- table(NN01_preds - 1, test_ds$targets - 1)
+dimnames(nn01cm) <- list(reference = dimnames(nn01cm)[[1]], predicted = dimnames(nn01cm)[[2]])
+```
+
+```{r}
+cmtibble <- tibble(
+  layer = list(3,3,3,2,2,2,1,1,1,0,0,0),
+  epochs = list(10,5,1,10,5,1,10,5,1,10,5,1),
+  confusionmatrix = list(nn310cm,nn35cm,nn31cm,nn210cm,nn25cm,nn21cm,nn110cm,
+                         nn15cm,nn1cm,nn010cm,nn05cm,nn01cm)
+)
+```
+
+```{r}
+save(
+  cmtibble,
+  file = "~/cmtibble.RData"
+)
+```
+
+```{r}
+
+
+for(iter in 1:9){
+    i <- sample(1:length(train_ds), 1)
+    x <- train_ds$data[i, ,] %>% t
+    image(x[1:28, 28:1], useRaster = TRUE, axes = FALSE, col = gray.colors(1000), main = train_ds$targets[i]-1)
+}
+```
+

@@ -12,6 +12,25 @@ library(howler)
 
 # Load additional dependencies and setup functions ----
 source("neuralNet.R")
+# Load in 
+load("cmtibble.RData")
+
+dir <- "./mnist"
+
+train_ds <- mnist_dataset(
+  root = dir,
+  train = TRUE,
+  download = TRUE,
+  transform = transform
+)
+test_ds <- mnist_dataset(
+  root = dir,
+  train = FALSE,
+  download = TRUE,
+  transform = transform
+)
+train_dl <- dataloader(train_ds, batch_size = 1024, shuffle = TRUE)
+test_dl <- dataloader(test_ds, batch_size = 1024)
 
 trainNNData <- read.csv(file = "trainNNData.csv", header = TRUE)
 trainNNData <- na.omit(trainNNData)
@@ -98,8 +117,7 @@ ui <- list(
           h2("Acknowledgements"),
           p(
             "This version of the app was developed and coded by Robert Chappell,
-            special thanks to Neil Hatfield for help with finding various packages
-            and for creating the neural network diagram.",
+            special thanks to Neil Hatfield for help throughout.",
             br(),
             br(),
             br(),
@@ -108,7 +126,7 @@ ui <- list(
             citeApp(),
             br(),
             br(),
-            div(class = "updated", "Last Update: 07/07/2022 by RWC.")
+            div(class = "updated", "Last Update: 11/30/2023 by RWC.")
           )
         ),
         #### Set up the Prerequisites Page ----
@@ -119,15 +137,15 @@ ui <- list(
           p("In order to get the most out of this app, please review the
             following:"),
           tags$ul(
-            tags$li("Binary Classification--Binary classification is a type of
-                    machine learning where data is grouped into two categories,
-                    and the goal is to predict which category new data belongs to.
-                    Common examples include spam detection and medical diagnosis."),
-            tags$li("Multinomial Classification--Multinomial classification is a
-                    machine learning task where data is sorted into three or more
-                    exclusive categories, and the goal is to predict which
-                    category new data falls into. Examples include image
-                    recognition and text categorization with various topics.")
+            tags$li("Hidden Layers -- hidden layers play a crucial role as
+                    intermediary layers between input and output layers. They
+                    enable the model to capture complex patterns and relationships
+                    within the data, improving its ability to make accurate
+                    predictions."),
+            tags$li("Epochs -- Epochs refer to the number of times a model
+                    processes the entire training dataset. While more epochs
+                    allow the model to refine its learning. Too many can lead to
+                    overfitting.")
           ),
           tags$strong("Neural Network Structure"),
           p(
@@ -154,111 +172,94 @@ ui <- list(
           ),
       textOutput("displayText"),
       br(),
-      strong("Activation Functions"),
+      strong("Overfitting"),
             p(
-            "Activation functions are vital components in neural networks.
-            In binary classification, we use the sigmoid function. The sigmoid function maps input values to a range
-            between 0 and 1, giving us a convenient probability interpretation
-            for the output. Multinomial classification, however, we use the 
-            softmax activation function. Softmax transforms a vector of real
-            values into a probability distribution across multiple classes,
-            ensuring that the probabilities sum up to 1. This allows us to select
-            the class with the highest probability as the predicted class.")
+            "Overfitting in machine learning occurs when a model learns the
+            training data too closely, including its noise and random variations.
+            This can lead to poor performance on new, unseen data because the
+            model becomes too specialized. To avoid overfitting, it's essential
+            to strike a balance in the complexity of the model. A model that is 
+            too complex may perform well on the training data but struggle to
+            generalize to real-world situations.")
           
         ),
         #### Set up an Explore Page ----
         tabItem(
           tabName = "explore",
-          withMathJax(),
-          h2("Explore the Dataset"),
-          p("This dataset being used contains 3,000 recordings (50 of each digit
-            per speaker). The digits are 0-9, and all speakers are male, with 
-            English pronunciation."),
-          p("Explore the dataset below looking at the waveforms for the various
-            audio files, and take a listen!"),
-          fluidRow(
-            column(width = 6,
-                   wellPanel(
-                     selectInput(
-                       inputId = "selectedDigit",
-                       label = "Select Digit:",
-                       choices = c("All", 0:9),
-                       selected = "All"
-                     ),
-                     selectInput(
-                       inputId = "selectedSpeaker",
-                       label = "Select Speaker:",
-                       choices = c("All", speakers),
-                       selected = "All"
-                     ),
-                     actionButton(
-                       inputId = "select", 
-                       label = "Select Random Wave File"
-                     )
-                   ),
-                   tags$strong("To listen to audio click the play button!"),
-                   br(),
-                   howler(elementId = "sound", tracks = trainNNData$filedir),
-                   howlerPlayPauseButton("sound")
+          tabsetPanel(
+            tabPanel(
+              title = "Writing Recognition",
+              withMathJax(),
+              br(),
+              h2("MNIST Dataset"),
+              p("An example of uses for Neural Network is with recognizing writing,
+                you can use them in scanners at the post office, or copying words from an image.
+                In this dataset we have diferent handwriting styles for each digit (0-9).
+                Look at the similarities and explore the data!"),
+                         actionButton(
+                           inputId = "makenum", 
+                           label = "Show Data!"
+                         ),
+              #FIX HERE
             ),
-            column(width = 6,
-                   plotOutput("waveform")
-            )
+        tabPanel(
+          title = "Speech Recognition",
+          withMathJax(),
+          br(),
+          h2("Voice Recording Dataset"),
+          p("Another great real-world application is speech recognition, we see 
+            this everywhere in life today. From a hospital elevator with no buttons,
+            or even with any digital assistant on your phone! Look for similarites
+            between different takes in this dataset."),
+          br(),
+          p("This dataset being used contains 3,000 recordings (50 of each digit
+        per speaker). The digits are 0-9, and all speakers are male, with 
+        English pronunciation."),
+        p("Explore the dataset below looking at the waveforms for the various
+        audio files, and take a listen!"),
+        fluidRow(
+          column(width = 6,
+                 wellPanel(
+                   selectInput(
+                     inputId = "selectedDigit",
+                     label = "Select Digit:",
+                     choices = c("All", 0:9),
+                     selected = "All"
+                   ),
+                   selectInput(
+                     inputId = "selectedSpeaker",
+                     label = "Select Speaker:",
+                     choices = c("All", speakers),
+                     selected = "All"
+                   ),
+                   actionButton(
+                     inputId = "select", 
+                     label = "Select Random Wave File"
+                   )
+                 ),
+                 tags$strong("To listen to audio click the play button!"),
+                 br(),
+                 howler(elementId = "sound", tracks = train_ds$filedir),
+                 howlerPlayPauseButton("sound")
+          ),
+          column(width = 6,
+                 plotOutput("waveform")
           )
+        )
+        )
+          )
+        
         ),
         #### Set up the Examples Page ----
         tabItem(
           tabName = "example",
           withMathJax(),
-          h2("Classification Examples"),
-          tabsetPanel(
-            tabPanel(
-              title = "Binary",
+          h2("Classification Example"),
               br(),
               p("Let's look at a practical use of a neural network performing
-                binary classification. You are walking into your local hospital,
-                you get into the elevator and you have to say 'Zero' to leave, 
-                and say 'One' to go up. The data used in splitting the dataset
-                was split using stratified sampling, with an 80-20 train-test split. 
-                Lets look at how a neural network performs in this situation."),
-              br(),
-              fluidRow(
-                column(
-                  width = 4,
-                  wellPanel(
-                    sliderInput(
-                      inputId = "nLayer",
-                      label = "Number of Hidden Layers in Neural Network",
-                      min = 0, 
-                      max = 3,
-                      value = 1, 
-                      step = 1
-                    ),
-                    br(),
-                  actionButton(
-                    inputId = "simulateBinary",
-                    label = "Simulate with test data"
-                    )
-                  )
-                ),
-                column(
-                  width = 8,
-                  tableOutput("accuracyTableBinary")
-                )
-              ),
-              tags$strong("Questions to Ponder"),
-              p("Do the amount of hidden layers affect the accuracy? Why?"),
-              br(),
-              p("What are some reasons the neural network could misunderstand the
-                number said?")
-            ),
-            tabPanel(
-              title = "Multinomial",
-              br(),
-              p("Let's look at a practical use of a neural network performing
-                multinomial classification. You are in the elevator at
-                your local hospital, you must speak the floor you want go up to,
-                with floors two through nine. Lets look at how a neural network
+                multinomial classification. You are working at your post office,
+                you go through thousands of envelopes a day and need a quicker
+                way to read the zip codes, lets look at how a neural network
                 performs in this situation."),
               br(),
               fluidRow(
@@ -266,12 +267,20 @@ ui <- list(
                   width = 4,
                   wellPanel(
                     sliderInput(
-                      inputId = "nLayerM",
-                      label = "Number of Hidden Layers in Neural Network",
+                      inputId = "nLayer",
+                      label = "Number of Hidden Layers in Neural Network:",
                       min = 0, 
                       max = 3,
                       value = 1, 
                       step = 1
+                    ),
+                    sliderTextInput(
+                      inputId = "nEpochs",
+                      label = "Number of Epochs in Neural Network:", 
+                      choices = c(1, 5, 10),
+                      selected = 5,
+                      grid = TRUE
+                    
                     ),
                     br(),
                     actionButton(
@@ -282,17 +291,36 @@ ui <- list(
                 ),
                 column(
                   width = 8,
-                  tableOutput("accuracyTableMulti")
+                  verbatimTextOutput(
+                    outputId = "cmTable"
+                  )
                 )
               ),
               br(),
-              tags$strong("Questions to Ponder"),
-              p("What numbers does the neural network struggle with? Why?"),
-              br(),
-              p("Is the trend with accuracy the same as binary classification?")
-            )
+          tags$strong("Effect of Epochs:"),
+          p("How does adjusting the number of epochs influence the performance
+            of the neural network in the classification task, and what insights
+            can be gained about the trade-off between underfitting and overfitting?"),
+          
+          tags$strong("Number of Layers Impact:"),
+          p("Explore the impact of varying the number of hidden layers on the 
+            confusion matrix. What patterns emerge, and how does the complexity
+            introduced by additional layers affect the model's ability to
+            generalize?"),
+          
+          tags$strong("Overfitting Concerns:"),
+          p("Consider the possibility of overfitting in the context of the 
+            confusion matrices. What signs of overfitting can be observed, and
+            how does this influence the neural network's ability to handle
+            unseen data?"),
+          
+          tags$strong("Identifying Network Struggles:"),
+          p("Examine specific entries in the confusion matrix where the neural
+            network tends to struggle. What can be inferred about the
+            the data that pose challenges to the model, are there identifiable
+            patterns in these struggles?")
           )
-        ),
+        ,
         #### Set up the References Page ----
         tabItem(
           tabName = "references",
@@ -462,7 +490,8 @@ server <- function(input, output, session) {
   
   ## Set up Explore Page ----
   # Load the training data (audio files for selected digits and speakers)
-  trainingData <- reactive({
+  trainingData <- reactive(
+    {
     selectedDigit <- input$selectedDigit
     selectedSpeaker <- input$selectedSpeaker
     
@@ -521,8 +550,19 @@ server <- function(input, output, session) {
   },
   alt = "Waveform of audio")
   
-  #### Set up Binary Example Page----
-  
+  #### Set up Example Page----
+  observeEvent(
+    eventExpr = input$simulateMulti,
+    handlerExpr = {
+      selected_row <- cmtibble[cmtibble$layer == input$nLayer & cmtibble$epochs
+                               == as.numeric(input$nEpochs), ]
+      output$cmTable <- renderPrint({
+        if (!is.null(selected_row)) {
+          selected_row$confusionmatrix[[1]]
+        }
+      })
+    }
+  )
 }
 
 # Boast App Call ----
