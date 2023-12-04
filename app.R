@@ -16,7 +16,7 @@ library(tibble)
 
 # Load additional dependencies and setup functions ----
 source("neuralNet.R")
-# Load in confusion matricies
+# Load in confusion matrices
 load("cmtibble.RData")
 
 transform <- function(x) x %>% 
@@ -109,10 +109,10 @@ ui <- list(
           tags$ol(
             tags$li("Review the prerequiste information and ideas using the
                     Prerequistes tab."),
-            tags$li("Explore the dataset Exploration tab."),
-            tags$li("Head to the Examples tab to see two neural networks in action!
-                    Dealing with examples of binary and multinomial classification
-                    in a hospital.")
+            tags$li("Explore situations in Exploration tab."),
+            tags$li("Head to the Examples tab to see a neural networks in action!
+                    Dealing with examples of classification in a post office.
+                    See how layers and epochs affect the accuracy.")
           ),
           ##### Go Button--location will depend on your goals
           div(
