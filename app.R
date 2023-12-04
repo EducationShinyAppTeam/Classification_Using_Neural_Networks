@@ -9,29 +9,18 @@ library(dplyr)
 library(seewave)
 library(tuneR)
 library(howler)
+library(torch)
+library(torchvision)
+library(tibble)
 
-packages <- c(
-  "tidyverse",
-  "kableExtra",
-  "IRdisplay",
-  "car",
-  "corrplot",
-  "torch",
-  "torchvision",
-  "luz",
-  "tibble"
-)
-sapply(packages, require, character.only = TRUE)
 
 # Load additional dependencies and setup functions ----
 source("neuralNet.R")
-# Load in 
+# Load in confusion matricies
 load("cmtibble.RData")
 
 transform <- function(x) x %>% 
-  torch_tensor() %>% 
-  torch_flatten() %>% 
-  torch_div(255)
+  torch_tensor()
 dir <- "./mnist"
 
 mnistTrain <- mnist_dataset(
