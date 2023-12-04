@@ -10,27 +10,37 @@ library(seewave)
 library(tuneR)
 library(howler)
 
+packages <- c(
+  "tidyverse",
+  "kableExtra",
+  "IRdisplay",
+  "car",
+  "corrplot",
+  "torch",
+  "torchvision",
+  "luz",
+  "tibble"
+)
+sapply(packages, require, character.only = TRUE)
+
 # Load additional dependencies and setup functions ----
 source("neuralNet.R")
 # Load in 
 load("cmtibble.RData")
 
+transform <- function(x) x %>% 
+  torch_tensor() %>% 
+  torch_flatten() %>% 
+  torch_div(255)
 dir <- "./mnist"
 
-train_ds <- mnist_dataset(
+mnistTrain <- mnist_dataset(
   root = dir,
   train = TRUE,
   download = TRUE,
   transform = transform
 )
-test_ds <- mnist_dataset(
-  root = dir,
-  train = FALSE,
-  download = TRUE,
-  transform = transform
-)
-train_dl <- dataloader(train_ds, batch_size = 1024, shuffle = TRUE)
-test_dl <- dataloader(test_ds, batch_size = 1024)
+
 
 trainNNData <- read.csv(file = "trainNNData.csv", header = TRUE)
 trainNNData <- na.omit(trainNNData)
@@ -39,6 +49,21 @@ binaryTestData <- testNNData %>%
   filter(digit == 0 | digit == 1) 
 speakers <- c("george", "jackson", "lucas", "nicolas", "theo", "yweweler")
 
+
+generateNumbersPlot <- function() {
+  par(mfrow = c(3, 3))
+  for (iter in 1:9) {
+    i <- sample(1:length(mnistTrain), 1)
+    x <- mnistTrain$data[i, , ] %>% t
+    image(
+      x[1:28, 28:1],
+      useRaster = TRUE,
+      axes = FALSE,
+      col = gray.colors(1000),
+      main = mnistTrain$targets[i] - 1
+    )
+  }
+}
 
 # Define UI for App ----
 ui <- list(
@@ -200,7 +225,7 @@ ui <- list(
                            inputId = "makenum", 
                            label = "Show Data!"
                          ),
-              #FIX HERE
+              plotOutput("numbersPlot")
             ),
         tabPanel(
           title = "Speech Recognition",
@@ -239,7 +264,7 @@ ui <- list(
                  ),
                  tags$strong("To listen to audio click the play button!"),
                  br(),
-                 howler(elementId = "sound", tracks = train_ds$filedir),
+                 howler(elementId = "sound", tracks = trainNNData$filedir),
                  howlerPlayPauseButton("sound")
           ),
           column(width = 6,
@@ -489,6 +514,13 @@ server <- function(input, output, session) {
   )
   
   ## Set up Explore Page ----
+  
+  observeEvent(input$makenum, {
+    output$numbersPlot <- renderPlot({
+      generateNumbersPlot()
+    })
+  })
+  
   # Load the training data (audio files for selected digits and speakers)
   trainingData <- reactive(
     {

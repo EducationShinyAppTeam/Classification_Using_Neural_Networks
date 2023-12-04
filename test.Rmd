@@ -546,13 +546,13 @@ cmtibble <- tibble(
 
 ```{r}
 save(
-  cmtibble,
-  file = "~/cmtibble.RData"
+  train_ds,
+  file = "~/mnistTrain.RData"
 )
 ```
 
 ```{r}
-
+par(mfrow=c(3,3))
 
 for(iter in 1:9){
     i <- sample(1:length(train_ds), 1)
