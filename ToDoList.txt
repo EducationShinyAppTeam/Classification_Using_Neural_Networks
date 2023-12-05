@@ -1,7 +1,9 @@
 # Things Needed for This Version
-1. add text popups for svg file
-2. make NN
+1. Update Overview Page
+2. Fix References
 
 # Ideas for Future Development
 Import own audio
 Add vertical line for the waveform to match
+speech recognition neural network
+quiz for questions?

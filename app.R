@@ -151,7 +151,7 @@ ui <- list(
           p("In order to get the most out of this app, please review the
             following:"),
           tags$ul(
-            tags$li("Hidden Layers -- hidden layers play a crucial role as
+            tags$li("Hidden Layers -- Hidden layers play a crucial role as
                     intermediary layers between input and output layers. They
                     enable the model to capture complex patterns and relationships
                     within the data, improving its ability to make accurate
